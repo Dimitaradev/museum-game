@@ -615,12 +615,8 @@ h2 {
    ============================================ */
 .artwork-image-container {
     width: 100%;
-    max-width: 280px;
+    max-width: 180px;
     margin-bottom: 20px;
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    border: 3px solid var(--color-border);
 }
 
 .artwork-image {
