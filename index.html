@@ -3,282 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Квадрат 500 - Лов на Печати</title>
+    <title>Квадрат 500 - Арт Изследовател</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div id="app">
-        <!-- ============================================
-             SCREEN: HOME / INTRO
-             ============================================ -->
-        <div id="screen-home" class="screen active">
-            <div class="home-container">
-                <div class="home-header">
-                    <div class="logo">🏛️</div>
-                    <h1>Квадрат 500</h1>
-                    <p class="tagline">Лов на Печати • Stamp Hunt</p>
+        <!-- NAVIGATION BAR -->
+        <nav class="nav-bar hidden" id="nav-bar">
+            <button class="nav-btn" id="nav-home" title="Начало">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Начало</span>
+            </button>
+            <button class="nav-btn" id="nav-map" title="Карта">
+                <span class="nav-icon">🗺️</span>
+                <span class="nav-label">Карта</span>
+            </button>
+            <button class="nav-btn" id="nav-passport" title="Паспорт">
+                <span class="nav-icon">📕</span>
+                <span class="nav-label">Паспорт</span>
+                <span class="stamp-count" id="stamp-count">0</span>
+            </button>
+        </nav>
+
+        <!-- PASSPORT MODAL -->
+        <div class="modal-overlay" id="passport-modal">
+            <div class="modal-content passport">
+                <button class="modal-close" id="passport-close">✕</button>
+                <h2>🎨 Паспорт на изследователя</h2>
+                <p class="passport-subtitle">Събрани печати</p>
+                <div class="passport-stamps" id="passport-stamps">
+                    <!-- Stamps will be added here -->
                 </div>
-
-                <div class="character-select">
-                    <h2>Избери своя водач</h2>
-                    <div class="character-options" id="character-options">
-                        <!-- Characters will be rendered by JS -->
+                <div class="passport-progress">
+                    <div class="passport-progress-bar">
+                        <div class="passport-progress-fill" id="passport-progress-fill"></div>
                     </div>
+                    <span class="passport-progress-text" id="passport-progress-text">0 / 5 печата</span>
                 </div>
-
-                <div class="game-info">
-                    <div class="info-card">
-                        <span class="info-icon">🗺️</span>
-                        <h3>Изследвай</h3>
-                        <p>Движи се из музея и откривай тайни</p>
-                    </div>
-                    <div class="info-card">
-                        <span class="info-icon">🧩</span>
-                        <h3>Разгадавай</h3>
-                        <p>Реши загадки за всяка творба</p>
-                    </div>
-                    <div class="info-card">
-                        <span class="info-icon">📒</span>
-                        <h3>Събирай</h3>
-                        <p>Спечели печати в брошурата си</p>
-                    </div>
-                </div>
-
-                <button class="btn btn-primary btn-large" id="btn-start" disabled>
-                    <span>🚀</span> Започни Приключението
-                </button>
-
-                <p class="prototype-note">Prototype for NBU Marketing Course</p>
             </div>
         </div>
 
-        <!-- ============================================
-             SCREEN: MAP / MAIN GAME
-             ============================================ -->
-        <div id="screen-map" class="screen">
-            <!-- Top HUD -->
-            <div class="game-hud">
-                <div class="hud-left">
-                    <div class="player-info">
-                        <span class="player-avatar" id="hud-avatar">🎨</span>
-                        <span class="player-name" id="hud-name">Играч</span>
+        <!-- SCREEN: Welcome / Rules -->
+        <div id="screen-welcome" class="screen active">
+            <div class="screen-content">
+                <img src="images/character.png" alt="Водач" class="character-img large">
+                <h1>Квадрат 500</h1>
+                <p class="subtitle">Арт Изследовател</p>
+
+                <div class="rules-box">
+                    <h2>Как се играе?</h2>
+                    <div class="rule">
+                        <span class="rule-num">1</span>
+                        <p>Следвай маршрута в музея</p>
+                    </div>
+                    <div class="rule">
+                        <span class="rule-num">2</span>
+                        <p>Отговори на загадките</p>
+                    </div>
+                    <div class="rule">
+                        <span class="rule-num">3</span>
+                        <p>Събери печати в паспорта си</p>
                     </div>
                 </div>
-                <div class="hud-center">
-                    <div class="progress-mini">
-                        <span id="hud-progress">0/5</span>
-                        <div class="progress-dots" id="hud-dots">
-                            <!-- Dots rendered by JS -->
-                        </div>
-                    </div>
-                </div>
-                <div class="hud-right">
-                    <button class="hud-btn" id="btn-stamps" title="Брошура">📒</button>
-                    <button class="hud-btn" id="btn-menu" title="Меню">☰</button>
-                </div>
-            </div>
 
-            <!-- Interactive 3D Corridor Map -->
-            <div class="map-container" id="map-container">
-                <div class="map-wrapper" id="map-wrapper">
-                    <!-- 3D Corridor scene rendered by JS -->
-                </div>
-            </div>
-
-            <!-- Room interaction prompt -->
-            <div class="room-prompt" id="room-prompt">
-                <div class="prompt-content">
-                    <span class="prompt-icon">❓</span>
-                    <span class="prompt-text" id="prompt-text">Докосни стая, за да се придвижиш</span>
-                </div>
-            </div>
-
-            <!-- Bottom action bar -->
-            <div class="action-bar">
-                <button class="action-btn" id="btn-hint-map" disabled>
-                    <span>💡</span> Подсказка
-                </button>
-                <button class="action-btn primary" id="btn-interact" disabled>
-                    <span>🔍</span> Изследвай
+                <button class="btn btn-primary" id="btn-start">
+                    Започни приключението
                 </button>
             </div>
         </div>
 
-        <!-- ============================================
-             SCREEN: RIDDLE MODAL
-             ============================================ -->
-        <div id="modal-riddle" class="modal">
-            <div class="modal-overlay"></div>
-            <div class="modal-content riddle-modal">
-                <div class="modal-header">
-                    <div class="riddle-location">
-                        <span class="location-icon">📍</span>
-                        <span id="riddle-room-name">Зала 19</span>
-                    </div>
-                    <button class="modal-close" id="btn-close-riddle">✕</button>
-                </div>
+        <!-- SCREEN: Navigation -->
+        <div id="screen-navigate" class="screen">
+            <div class="screen-content">
+                <!-- Museum Map -->
+                <div class="museum-map-container" id="museum-map">
+                    <!-- Background texture -->
+                    <div class="map-bg"></div>
 
-                <div class="riddle-body">
-                    <div class="guide-speech">
-                        <div class="guide-avatar" id="modal-guide-avatar">🎨</div>
-                        <div class="speech-bubble">
-                            <p class="guide-name" id="modal-guide-name">Златната Муза казва:</p>
-                            <p class="riddle-text" id="riddle-text">
-                                Тук ще се появи загадката...
-                            </p>
+                    <!-- Walking path SVG -->
+                    <svg class="map-path-svg" viewBox="0 0 300 300" preserveAspectRatio="xMidYMid meet">
+                        <!-- Soft glow behind path -->
+                        <defs>
+                            <filter id="pathGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="3" result="blur"/>
+                                <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                            </filter>
+                        </defs>
+
+                        <!-- Dotted trail path showing the route -->
+                        <path id="walking-path" class="walking-path"
+                              d="M150,270 L55,195 L55,125 L245,125 L245,50 L150,25"
+                              fill="none" stroke="#C9BBA8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2,14" opacity="0.7"/>
+
+                        <!-- Route line -->
+                        <path class="route-line"
+                              d="M150,270 L55,195 L55,125 L245,125 L245,50 L150,25"
+                              fill="none" stroke="#B8A88A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
+
+                        <!-- Animated progress path (shows completed route) -->
+                        <path id="progress-path" class="progress-path"
+                              d="M150,270 L55,195 L55,125 L245,125 L245,50 L150,25"
+                              fill="none" stroke="#6B8E6B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#pathGlow)"/>
+
+                        <!-- Footstep markers along the route -->
+                        <g class="footsteps" opacity="0.25">
+                            <text x="110" y="265" font-size="10" fill="#8B7355">👣</text>
+                            <text x="70" y="235" font-size="10" fill="#8B7355">👣</text>
+                            <text x="55" y="165" font-size="10" fill="#8B7355">👣</text>
+                            <text x="120" y="125" font-size="10" fill="#8B7355">👣</text>
+                            <text x="180" y="125" font-size="10" fill="#8B7355">👣</text>
+                            <text x="245" y="90" font-size="10" fill="#8B7355">👣</text>
+                            <text x="200" y="35" font-size="10" fill="#8B7355">👣</text>
+                        </g>
+                    </svg>
+
+                    <!-- Rooms -->
+                    <div class="map-room entrance" data-room="entrance">
+                        <div class="room-inner">
+                            <span class="room-label">ВХОД</span>
                         </div>
                     </div>
 
-                    <div class="artwork-hint" id="artwork-hint">
-                        <span class="artwork-label">Търси:</span>
-                        <span class="artwork-name" id="artwork-name">Името на творбата</span>
-                    </div>
-
-                    <div class="hint-section" id="hint-section">
-                        <button class="btn-show-hint" id="btn-show-hint">
-                            💡 Покажи подсказка
-                        </button>
-                        <div class="hint-content" id="hint-content">
-                            <p id="hint-text">Подсказката ще се появи тук...</p>
+                    <div class="map-room r19" data-room="1">
+                        <div class="room-inner">
+                            <span class="room-num">19</span>
                         </div>
+                        <div class="room-glow"></div>
                     </div>
 
-                    <div class="answer-section">
-                        <input
-                            type="text"
-                            id="answer-input"
-                            class="answer-input"
-                            placeholder="Въведи отговор..."
-                            autocomplete="off"
-                            autocapitalize="none"
-                        >
-                        <div class="feedback" id="feedback"></div>
-                        <button class="btn btn-primary" id="btn-check-answer">
-                            ✓ Провери
-                        </button>
+                    <div class="map-room r21" data-room="2">
+                        <div class="room-inner">
+                            <span class="room-num">21</span>
+                        </div>
+                        <div class="room-glow"></div>
                     </div>
 
-                    <!-- QR Scanner placeholder for future -->
-                    <div class="qr-placeholder" id="qr-placeholder">
-                        <span>📷</span>
-                        <p>Или сканирай QR код на локацията</p>
+                    <div class="map-room r22" data-room="3">
+                        <div class="room-inner">
+                            <span class="room-num">22</span>
+                        </div>
+                        <div class="room-glow"></div>
+                    </div>
+
+                    <div class="map-room r24" data-room="4">
+                        <div class="room-inner">
+                            <span class="room-num">24</span>
+                        </div>
+                        <div class="room-glow"></div>
+                    </div>
+
+                    <div class="map-room r25 main-gallery" data-room="5">
+                        <div class="room-inner">
+                            <span class="room-num">25</span>
+                            <span class="room-trophy">🏆</span>
+                        </div>
+                        <div class="room-glow"></div>
+                    </div>
+
+                    <!-- Character -->
+                    <div class="character-marker" id="character-marker">
+                        <img src="images/character.png" alt="Водач" class="character-sprite">
                     </div>
                 </div>
+
+                <div class="speech-bubble">
+                    <p class="direction-text" id="direction-text">Тръгни напред и завий наляво към Зала 19</p>
+                </div>
+
+                <div class="destination-card">
+                    <span class="destination-label">Следваща спирка:</span>
+                    <span class="destination-name" id="destination-name">Зала 19</span>
+                </div>
+
+                <button class="btn btn-primary" id="btn-arrived">
+                    Пристигнах!
+                </button>
             </div>
         </div>
 
-        <!-- ============================================
-             SCREEN: STAMPS MODAL
-             ============================================ -->
-        <div id="modal-stamps" class="modal">
-            <div class="modal-overlay"></div>
-            <div class="modal-content stamps-modal">
-                <div class="modal-header">
-                    <h2>📒 Моята Брошура</h2>
-                    <button class="modal-close" id="btn-close-stamps">✕</button>
+        <!-- SCREEN: Riddle -->
+        <div id="screen-riddle" class="screen">
+            <div class="screen-content">
+
+                <div class="artwork-image-container">
+                    <img src="images/rachenitsa.jpg" alt="Картина" class="artwork-image" id="artwork-image">
                 </div>
 
-                <div class="stamps-body">
-                    <div class="stamps-progress">
-                        <div class="progress-ring" id="stamps-ring">
-                            <svg viewBox="0 0 100 100">
-                                <circle class="progress-bg" cx="50" cy="50" r="45"/>
-                                <circle class="progress-fill" cx="50" cy="50" r="45" id="progress-circle"/>
-                            </svg>
-                            <div class="progress-center">
-                                <span class="progress-number" id="stamps-count">0</span>
-                                <span class="progress-label">/ <span id="stamps-total">5</span></span>
-                            </div>
-                        </div>
-                        <p class="progress-message" id="stamps-message">Събирай печати!</p>
-                    </div>
-
-                    <div class="stamps-grid" id="stamps-grid">
-                        <!-- Stamps rendered by JS -->
-                    </div>
+                <div class="riddle-frame">
+                    <span class="riddle-number" id="riddle-number">1</span>
+                    <p class="riddle-text" id="riddle-text">
+                        В сянката на дървото, след дълъг ден на полето, селянин е намерил покой. Кой художник е нарисувал тази картина?
+                    </p>
                 </div>
+
+                <div class="artwork-info" id="artwork-info">
+                    <span class="artwork-label">Търси картината:</span>
+                    <span class="artwork-name" id="artwork-name">Ратай</span>
+                </div>
+
+                <div class="answer-section">
+                    <input type="text" id="answer-input" class="answer-input" placeholder="Въведи отговор..." autocomplete="off" autocapitalize="none">
+                    <div class="feedback" id="feedback"></div>
+                    <button class="btn btn-secondary" id="btn-hint">Подсказка</button>
+                    <button class="btn btn-primary" id="btn-check">Провери</button>
+                </div>
+
             </div>
         </div>
 
-        <!-- ============================================
-             SCREEN: SUCCESS CELEBRATION
-             ============================================ -->
-        <div id="modal-success" class="modal">
-            <div class="modal-overlay"></div>
-            <div class="modal-content success-modal">
-                <div class="success-animation">
-                    <div class="confetti"></div>
-                    <div class="stamp-collected" id="stamp-collected">
-                        <span class="stamp-icon">🌾</span>
+        <!-- SCREEN: Stamp Received -->
+        <div id="screen-stamp" class="screen">
+            <div class="screen-content center">
+                <div class="stamp-animation">
+                    <div class="stamp-circle">
+                        <span class="stamp-icon" id="stamp-icon">🌾</span>
                     </div>
                 </div>
-                <h2>Печат Събран!</h2>
-                <p id="success-message">Браво! Продължавай напред!</p>
+
+                <h2>Браво!</h2>
+                <p class="stamp-message">Получи печат!</p>
+
+                <div class="physical-stamp-info">
+                    <span class="physical-label">Физическият печат е при:</span>
+                    <span class="physical-location" id="physical-location">Изхода на Зала 19, до вратата</span>
+                </div>
+
                 <button class="btn btn-primary" id="btn-continue">
-                    Продължи →
+                    Продължи
                 </button>
             </div>
         </div>
 
-        <!-- ============================================
-             SCREEN: GAME COMPLETE
-             ============================================ -->
-        <div id="modal-complete" class="modal">
-            <div class="modal-overlay"></div>
-            <div class="modal-content complete-modal">
+        <!-- SCREEN: Complete -->
+        <div id="screen-complete" class="screen">
+            <div class="screen-content center">
                 <div class="trophy-animation">
                     <span class="trophy">🏆</span>
                 </div>
+
                 <h2>Поздравления!</h2>
-                <p>Събра всички печати и завърши маршрута!</p>
-                <p class="subtitle">Ти си истински познавач на българското изкуство!</p>
+                <p>Събра всички печати!</p>
 
                 <div class="final-stamps" id="final-stamps">
-                    <!-- Final stamps display -->
+                    <!-- Stamps shown here -->
                 </div>
 
-                <div class="complete-actions">
-                    <button class="btn btn-secondary" id="btn-view-brochure">
-                        📒 Виж Брошурата
-                    </button>
-                    <button class="btn btn-primary" id="btn-play-again">
-                        🔄 Играй Отново
-                    </button>
-                </div>
-            </div>
-        </div>
+                <p class="complete-message">Покажи паспорта си на изхода за награда!</p>
 
-        <!-- ============================================
-             MENU OVERLAY
-             ============================================ -->
-        <div id="menu-overlay" class="menu-overlay">
-            <div class="menu-content">
-                <button class="menu-close" id="btn-close-menu">✕</button>
-                <h2>Меню</h2>
-                <nav class="menu-nav">
-                    <button class="menu-item" id="menu-home">
-                        <span>🏠</span> Начало
-                    </button>
-                    <button class="menu-item" id="menu-stamps">
-                        <span>📒</span> Брошура
-                    </button>
-                    <button class="menu-item" id="menu-reset">
-                        <span>🔄</span> Започни Отново
-                    </button>
-                </nav>
-                <div class="menu-footer">
-                    <p>Квадрат 500 - Лов на Печати</p>
-                    <p class="version">Prototype v1.0</p>
-                </div>
+                <button class="btn btn-secondary" id="btn-restart">
+                    Играй отново
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript Modules -->
     <script src="js/data.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/map.js"></script>
-    <script src="js/game.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

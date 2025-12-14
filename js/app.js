@@ -1,632 +1,510 @@
 /* ============================================
-   APP.JS - Main Application Controller
+   APP.JS - Simple Linear Flow Controller
 
-   Ties together all modules:
-   - Data
-   - Storage
-   - Map
-   - Game
-
-   Handles UI interactions and screen transitions.
+   Flow: Welcome → Navigate → Riddle → Stamp → (repeat) → Complete
    ============================================ */
 
-const App = (function() {
-    // Current screen
-    let currentScreen = 'home';
+(function() {
+    // State
+    let currentStop = 0;
+    let progress = [];
 
-    // DOM references (cached on init)
-    const dom = {};
+    // DOM Elements
+    const screens = {
+        welcome: document.getElementById('screen-welcome'),
+        navigate: document.getElementById('screen-navigate'),
+        riddle: document.getElementById('screen-riddle'),
+        stamp: document.getElementById('screen-stamp'),
+        complete: document.getElementById('screen-complete')
+    };
+
+    const elements = {
+        // Progress
+        progressFill: document.getElementById('progress-fill'),
+        progressText: document.getElementById('progress-text'),
+        progressFillRiddle: document.getElementById('progress-fill-riddle'),
+        progressTextRiddle: document.getElementById('progress-text-riddle'),
+
+        // Navigation
+        directionText: document.getElementById('direction-text'),
+        destinationName: document.getElementById('destination-name'),
+
+        // Riddle
+        riddleNumber: document.getElementById('riddle-number'),
+        riddleText: document.getElementById('riddle-text'),
+        artworkName: document.getElementById('artwork-name'),
+        artworkImage: document.getElementById('artwork-image'),
+        answerInput: document.getElementById('answer-input'),
+        feedback: document.getElementById('feedback'),
+
+        // Stamp
+        stampIcon: document.getElementById('stamp-icon'),
+        physicalLocation: document.getElementById('physical-location'),
+
+        // Complete
+        finalStamps: document.getElementById('final-stamps')
+    };
+
+    const buttons = {
+        start: document.getElementById('btn-start'),
+        arrived: document.getElementById('btn-arrived'),
+        hint: document.getElementById('btn-hint'),
+        check: document.getElementById('btn-check'),
+        continue: document.getElementById('btn-continue'),
+        restart: document.getElementById('btn-restart')
+    };
+
+    const nav = {
+        bar: document.getElementById('nav-bar'),
+        home: document.getElementById('nav-home'),
+        map: document.getElementById('nav-map'),
+        passport: document.getElementById('nav-passport'),
+        stampCount: document.getElementById('stamp-count')
+    };
+
+    const passport = {
+        modal: document.getElementById('passport-modal'),
+        close: document.getElementById('passport-close'),
+        stamps: document.getElementById('passport-stamps'),
+        progressFill: document.getElementById('passport-progress-fill'),
+        progressText: document.getElementById('passport-progress-text')
+    };
 
     /**
-     * Initialize the application
+     * Initialize the app
      */
     function init() {
-        console.log('[App] Initializing Museum Stamp Hunt...');
-
-        // Cache DOM references
-        cacheDOMReferences();
-
-        // Initialize modules
-        Game.init({
-            onStampCollected: handleStampCollected,
-            onGameComplete: handleGameComplete,
-            onProgressUpdate: updateHUD
-        });
-
-        // Setup event listeners
+        loadProgress();
         setupEventListeners();
 
-        // Render character selection on home screen
-        renderCharacterOptions();
+        // Initialize UI
+        updateStampCount();
+        updateNavBar('welcome');
 
-        // Check for saved game
-        checkSavedGame();
+        // Check if game was in progress
+        if (progress.length > 0 && currentStop < GameData.ROUTE.length) {
+            // Resume from where left off
+            showScreen('navigate');
+            updateNavigateScreen();
+        }
 
-        console.log('[App] Initialization complete');
-    }
-
-    /**
-     * Cache DOM element references
-     */
-    function cacheDOMReferences() {
-        // Screens
-        dom.screenHome = document.getElementById('screen-home');
-        dom.screenMap = document.getElementById('screen-map');
-
-        // Home screen
-        dom.characterOptions = document.getElementById('character-options');
-        dom.btnStart = document.getElementById('btn-start');
-
-        // HUD
-        dom.hudAvatar = document.getElementById('hud-avatar');
-        dom.hudName = document.getElementById('hud-name');
-        dom.hudProgress = document.getElementById('hud-progress');
-        dom.hudDots = document.getElementById('hud-dots');
-
-        // Map screen
-        dom.promptText = document.getElementById('prompt-text');
-        dom.btnHintMap = document.getElementById('btn-hint-map');
-        dom.btnInteract = document.getElementById('btn-interact');
-
-        // Modals
-        dom.modalRiddle = document.getElementById('modal-riddle');
-        dom.modalStamps = document.getElementById('modal-stamps');
-        dom.modalSuccess = document.getElementById('modal-success');
-        dom.modalComplete = document.getElementById('modal-complete');
-        dom.menuOverlay = document.getElementById('menu-overlay');
-
-        // Riddle modal elements
-        dom.riddleRoomName = document.getElementById('riddle-room-name');
-        dom.modalGuideAvatar = document.getElementById('modal-guide-avatar');
-        dom.modalGuideName = document.getElementById('modal-guide-name');
-        dom.riddleText = document.getElementById('riddle-text');
-        dom.artworkName = document.getElementById('artwork-name');
-        dom.hintContent = document.getElementById('hint-content');
-        dom.hintText = document.getElementById('hint-text');
-        dom.answerInput = document.getElementById('answer-input');
-        dom.feedback = document.getElementById('feedback');
-
-        // Stamps modal
-        dom.stampsGrid = document.getElementById('stamps-grid');
-        dom.stampsCount = document.getElementById('stamps-count');
-        dom.stampsTotal = document.getElementById('stamps-total');
-        dom.progressCircle = document.getElementById('progress-circle');
-        dom.stampsMessage = document.getElementById('stamps-message');
-
-        // Success modal
-        dom.stampCollected = document.getElementById('stamp-collected');
-        dom.successMessage = document.getElementById('success-message');
-
-        // Complete modal
-        dom.finalStamps = document.getElementById('final-stamps');
+        console.log('[App] Initialized');
     }
 
     /**
      * Setup all event listeners
      */
     function setupEventListeners() {
-        // Home screen - Start button
-        dom.btnStart?.addEventListener('click', startGame);
+        buttons.start.addEventListener('click', startGame);
+        buttons.arrived.addEventListener('click', showRiddle);
+        buttons.hint.addEventListener('click', showHint);
+        buttons.check.addEventListener('click', checkAnswer);
+        buttons.continue.addEventListener('click', continueGame);
+        buttons.restart.addEventListener('click', restartGame);
 
-        // HUD buttons
-        document.getElementById('btn-stamps')?.addEventListener('click', () => showModal('stamps'));
-        document.getElementById('btn-menu')?.addEventListener('click', () => toggleMenu(true));
-
-        // Map action buttons
-        dom.btnInteract?.addEventListener('click', handleInteractClick);
-        dom.btnHintMap?.addEventListener('click', showMapHint);
-
-        // Riddle modal
-        document.getElementById('btn-close-riddle')?.addEventListener('click', () => hideModal('riddle'));
-        document.getElementById('btn-show-hint')?.addEventListener('click', showRiddleHint);
-        document.getElementById('btn-check-answer')?.addEventListener('click', checkRiddleAnswer);
-        dom.answerInput?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') checkRiddleAnswer();
-        });
-
-        // Stamps modal
-        document.getElementById('btn-close-stamps')?.addEventListener('click', () => hideModal('stamps'));
-
-        // Success modal
-        document.getElementById('btn-continue')?.addEventListener('click', handleContinue);
-
-        // Complete modal
-        document.getElementById('btn-view-brochure')?.addEventListener('click', () => {
-            hideModal('complete');
-            showModal('stamps');
-        });
-        document.getElementById('btn-play-again')?.addEventListener('click', resetGame);
-
-        // Menu
-        document.getElementById('btn-close-menu')?.addEventListener('click', () => toggleMenu(false));
-        document.getElementById('menu-home')?.addEventListener('click', goToHome);
-        document.getElementById('menu-stamps')?.addEventListener('click', () => {
-            toggleMenu(false);
-            showModal('stamps');
-        });
-        document.getElementById('menu-reset')?.addEventListener('click', confirmReset);
-
-        // Close modals on overlay click
-        document.querySelectorAll('.modal-overlay').forEach(overlay => {
-            overlay.addEventListener('click', () => {
-                document.querySelectorAll('.modal.active').forEach(modal => {
-                    modal.classList.remove('active');
-                });
-            });
-        });
-    }
-
-    /**
-     * Render character selection options
-     */
-    function renderCharacterOptions() {
-        if (!dom.characterOptions) return;
-
-        const characters = window.GameData.CHARACTERS;
-        dom.characterOptions.innerHTML = '';
-
-        characters.forEach(char => {
-            const card = document.createElement('div');
-            card.className = 'character-card';
-            card.dataset.characterId = char.id;
-            card.innerHTML = `
-                <div class="avatar">${char.avatar}</div>
-                <div class="name">${char.shortName}</div>
-                <div class="desc">${char.description}</div>
-            `;
-
-            card.addEventListener('click', () => selectCharacter(char.id));
-            dom.characterOptions.appendChild(card);
-        });
-    }
-
-    /**
-     * Handle character selection
-     */
-    function selectCharacter(characterId) {
-        // Update UI
-        document.querySelectorAll('.character-card').forEach(card => {
-            card.classList.toggle('selected', card.dataset.characterId === characterId);
-        });
-
-        // Enable start button
-        dom.btnStart.disabled = false;
-        dom.btnStart.dataset.characterId = characterId;
-    }
-
-    /**
-     * Check for saved game and offer to resume
-     */
-    function checkSavedGame() {
-        const saved = Storage.load();
-        if (saved && saved.selectedCharacter && saved.completedStops?.length > 0) {
-            // Auto-select the saved character
-            selectCharacter(saved.selectedCharacter);
-
-            // Could show a "Resume Game?" dialog here
-            // For simplicity, we'll just let them continue
-            console.log('[App] Found saved game');
-        }
-    }
-
-    /**
-     * Start or resume the game
-     */
-    function startGame() {
-        const characterId = dom.btnStart.dataset.characterId;
-        if (!characterId) return;
-
-        // Try to resume or start new
-        let state = Game.resume();
-        if (!state || state.selectedCharacter !== characterId) {
-            state = Game.startNew(characterId);
-        }
-
-        // Initialize map
-        MuseumMap.init({
-            onRoomEnter: handleRoomEnter
-        });
-
-        // Setup player on map
-        const character = Game.getCharacter();
-        MuseumMap.setPlayerAvatar(character.avatar);
-        MuseumMap.setPlayerPosition(state.currentRoom);
-        MuseumMap.setRoomStates(Game.getRoomStates());
-
-        // Update HUD
-        updateHUD();
-
-        // Show map screen
-        showScreen('map');
-
-        // Show initial prompt
-        updatePrompt();
-    }
-
-    /**
-     * Handle when player enters a room
-     */
-    function handleRoomEnter(roomId, previousRoom) {
-        console.log('[App] Entered room:', roomId);
-
-        // Update game state
-        Game.setCurrentRoom(roomId);
-
-        // Update map visuals
-        MuseumMap.setRoomStates(Game.getRoomStates());
-
-        // Check if this room has an active riddle
-        const canInteract = Game.canInteractWithRoom(roomId);
-        dom.btnInteract.disabled = !canInteract;
-        dom.btnHintMap.disabled = !canInteract;
-
-        // Update prompt
-        updatePrompt(roomId);
-
-        // If entering a room with active riddle, show it automatically after a delay
-        if (canInteract) {
-            setTimeout(() => {
-                openRiddle();
-            }, 500);
-        }
-    }
-
-    /**
-     * Update the prompt text based on current state
-     */
-    function updatePrompt(roomId = null) {
-        const room = roomId ? MuseumMap.getRoomInfo(roomId) : null;
-        const status = roomId ? Game.getStopStatus(roomId) : null;
-
-        let message = GameData.MESSAGES.tapToMove;
-
-        if (status === 'active') {
-            message = `❓ Тук има загадка! Докосни "Изследвай"`;
-        } else if (status === 'completed') {
-            message = '✅ Вече си разгадал тази загадка';
-        } else if (status === 'locked') {
-            message = '🔒 Първо реши предишните загадки';
-        } else if (room) {
-            message = `📍 ${room.label}`;
-        }
-
-        dom.promptText.textContent = message;
-    }
-
-    /**
-     * Handle interact button click
-     */
-    function handleInteractClick() {
-        const currentRoom = MuseumMap.getCurrentRoom();
-        if (Game.canInteractWithRoom(currentRoom)) {
-            openRiddle();
-        }
-    }
-
-    /**
-     * Open riddle modal for current stop
-     */
-    function openRiddle() {
-        const stop = Game.getActiveStop();
-        if (!stop) return;
-
-        const character = Game.getCharacter();
-        const room = MuseumMap.getRoomInfo(stop.roomId);
-
-        // Populate modal
-        dom.riddleRoomName.textContent = room?.label || stop.roomId;
-        dom.modalGuideAvatar.textContent = character.avatar;
-        dom.modalGuideName.textContent = `${character.name} казва:`;
-        dom.riddleText.textContent = stop.riddle;
-        dom.artworkName.textContent = stop.artworkName;
-        dom.hintText.textContent = stop.hint;
-
-        // Reset state
-        dom.answerInput.value = '';
-        dom.feedback.classList.remove('visible', 'success', 'error');
-        dom.hintContent.classList.remove('visible');
-
-        // Show hint if previously used
-        if (Game.wasHintUsed()) {
-            dom.hintContent.classList.add('visible');
-        }
-
-        showModal('riddle');
-
-        // Focus input
-        setTimeout(() => dom.answerInput?.focus(), 300);
-    }
-
-    /**
-     * Show hint in riddle modal
-     */
-    function showRiddleHint() {
-        const hint = Game.useHint();
-        if (hint) {
-            dom.hintContent.classList.add('visible');
-        }
-    }
-
-    /**
-     * Show hint from map button
-     */
-    function showMapHint() {
-        const stop = Game.getActiveStop();
-        if (stop) {
-            // Show a quick hint in the prompt area
-            dom.promptText.textContent = `💡 ${stop.hint}`;
-
-            // Reset after a few seconds
-            setTimeout(() => updatePrompt(MuseumMap.getCurrentRoom()), 5000);
-        }
-    }
-
-    /**
-     * Check the riddle answer
-     */
-    function checkRiddleAnswer() {
-        const answer = dom.answerInput.value;
-        if (!answer.trim()) {
-            showFeedback('Моля, въведи отговор!', 'error');
-            return;
-        }
-
-        const result = Game.checkAnswer(answer);
-
-        if (result.success) {
-            showFeedback(result.message, 'success');
-
-            // Hide riddle modal after delay, show success
-            setTimeout(() => {
-                hideModal('riddle');
-                showStampSuccess(result.stamp, result.isComplete);
-            }, 1000);
-        } else {
-            showFeedback(result.message, 'error');
-            dom.answerInput.value = '';
-            dom.answerInput.focus();
-        }
-    }
-
-    /**
-     * Show feedback message in riddle modal
-     */
-    function showFeedback(message, type) {
-        dom.feedback.textContent = message;
-        dom.feedback.className = `feedback visible ${type}`;
-    }
-
-    /**
-     * Show stamp collected success modal
-     */
-    function showStampSuccess(stamp, isComplete) {
-        // Update success modal
-        dom.stampCollected.querySelector('.stamp-icon').textContent = stamp.stampIcon;
-        dom.successMessage.textContent = `Събра "${stamp.stampLabel}"!`;
-
-        showModal('success');
-
-        // Update map in background
-        MuseumMap.setRoomStates(Game.getRoomStates());
-        updateHUD();
-    }
-
-    /**
-     * Handle continue after stamp success
-     */
-    function handleContinue() {
-        hideModal('success');
-
-        // Check if game is complete
-        if (Game.isComplete()) {
-            showGameComplete();
-        } else {
-            // Update prompt
-            updatePrompt(MuseumMap.getCurrentRoom());
-
-            // Highlight next stop room
-            const nextStop = Game.getActiveStop();
-            if (nextStop) {
-                // Could animate camera to next room here
-                dom.promptText.textContent = `➡️ Следваща спирка: ${nextStop.title}`;
+        // Allow Enter key to submit answer
+        elements.answerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkAnswer();
             }
-        }
-    }
+        });
 
-    /**
-     * Handle stamp collected
-     */
-    function handleStampCollected(stamp) {
-        console.log('[App] Stamp collected:', stamp.stampLabel);
-        // Additional effects could go here (sound, vibration, etc.)
-    }
-
-    /**
-     * Handle game completion
-     */
-    function handleGameComplete(state) {
-        console.log('[App] Game complete!', state);
-    }
-
-    /**
-     * Show game complete modal
-     */
-    function showGameComplete() {
-        const stamps = Game.getStamps();
-
-        // Populate final stamps display
-        dom.finalStamps.innerHTML = stamps.map(s =>
-            `<span class="stamp-icon">${s.stampIcon}</span>`
-        ).join('');
-
-        showModal('complete');
-    }
-
-    /**
-     * Update HUD display
-     */
-    function updateHUD() {
-        const character = Game.getCharacter();
-        const progress = Game.getProgress();
-        const route = Game.getRoute();
-
-        if (character) {
-            dom.hudAvatar.textContent = character.avatar;
-            dom.hudName.textContent = character.shortName;
-        }
-
-        dom.hudProgress.textContent = `${progress.completed}/${progress.total}`;
-
-        // Update progress dots
-        dom.hudDots.innerHTML = '';
-        route.forEach((stop, index) => {
-            const dot = document.createElement('span');
-            dot.className = 'progress-dot';
-
-            const state = Game.getState();
-            if (state.completedStops.includes(stop.id)) {
-                dot.classList.add('completed');
-            } else if (index === state.activeStopIndex) {
-                dot.classList.add('active');
+        // Navigation bar
+        nav.home.addEventListener('click', goToHome);
+        nav.map.addEventListener('click', goToMap);
+        nav.passport.addEventListener('click', openPassport);
+        passport.close.addEventListener('click', closePassport);
+        passport.modal.addEventListener('click', (e) => {
+            if (e.target === passport.modal) {
+                closePassport();
             }
-
-            dom.hudDots.appendChild(dot);
         });
     }
 
     /**
-     * Show stamps modal with current collection
-     */
-    function showModal(modalName) {
-        const modal = document.getElementById(`modal-${modalName}`);
-        if (!modal) return;
-
-        // Update stamps grid if showing stamps modal
-        if (modalName === 'stamps') {
-            renderStampsGrid();
-        }
-
-        modal.classList.add('active');
-    }
-
-    /**
-     * Hide a modal
-     */
-    function hideModal(modalName) {
-        const modal = document.getElementById(`modal-${modalName}`);
-        if (modal) {
-            modal.classList.remove('active');
-        }
-    }
-
-    /**
-     * Render stamps grid in brochure modal
-     */
-    function renderStampsGrid() {
-        const stamps = Game.getStamps();
-        const progress = Game.getProgress();
-
-        // Update progress ring
-        const circumference = 2 * Math.PI * 45;
-        const offset = circumference - (progress.percentage / 100) * circumference;
-        dom.progressCircle.style.strokeDashoffset = offset;
-
-        // Update counts
-        dom.stampsCount.textContent = progress.completed;
-        dom.stampsTotal.textContent = progress.total;
-
-        // Update message
-        if (progress.isComplete) {
-            dom.stampsMessage.textContent = '🎉 Събра всички печати!';
-        } else {
-            dom.stampsMessage.textContent = `Още ${progress.total - progress.completed} до пълна колекция`;
-        }
-
-        // Render grid
-        dom.stampsGrid.innerHTML = '';
-        stamps.forEach(stamp => {
-            const slot = document.createElement('div');
-            slot.className = `stamp-slot ${stamp.collected ? 'collected' : ''}`;
-            slot.innerHTML = `
-                <span class="stamp-icon">${stamp.stampIcon}</span>
-                <span class="stamp-label">${stamp.stampLabel}</span>
-            `;
-            dom.stampsGrid.appendChild(slot);
-        });
-    }
-
-    /**
-     * Show screen (home or map)
+     * Show a specific screen
      */
     function showScreen(screenName) {
-        document.querySelectorAll('.screen').forEach(screen => {
+        Object.values(screens).forEach(screen => {
             screen.classList.remove('active');
         });
 
-        const screen = document.getElementById(`screen-${screenName}`);
-        if (screen) {
-            screen.classList.add('active');
-            currentScreen = screenName;
+        if (screens[screenName]) {
+            screens[screenName].classList.add('active');
+        }
+
+        // Update navigation bar
+        updateNavBar(screenName);
+    }
+
+    /**
+     * Start the game
+     */
+    function startGame() {
+        currentStop = 0;
+        progress = [];
+        saveProgress();
+
+        showScreen('navigate');
+        updateNavigateScreen();
+    }
+
+    // Character positions matching room centers (percentages)
+    const characterPositions = [
+        { left: '50%', top: '88%' },    // Start: at entrance
+        { left: '11%', top: '62%' },    // After stop 1: at room 19
+        { left: '11%', top: '42%' },    // After stop 2: at room 21
+        { left: '89%', top: '42%' },    // After stop 3: at room 22
+        { left: '89%', top: '18%' },    // After stop 4: at room 24
+        { left: '50%', top: '10%' }     // After stop 5: at room 25 (finish)
+    ];
+
+    /**
+     * Update the navigation screen with current stop info
+     */
+    function updateNavigateScreen() {
+        const stop = GameData.ROUTE[currentStop];
+        if (!stop) return;
+
+        elements.directionText.textContent = stop.direction;
+        elements.destinationName.textContent = stop.room;
+
+        updateMapRooms();
+        moveCharacter(true);
+    }
+
+    /**
+     * Update room states on the map
+     */
+    function updateMapRooms() {
+        const rooms = document.querySelectorAll('.map-room[data-room]');
+
+        rooms.forEach(room => {
+            const roomData = room.dataset.room;
+            room.classList.remove('completed', 'current', 'locked');
+
+            if (roomData === 'entrance') {
+                room.classList.add('completed');
+            } else {
+                const roomIndex = parseInt(roomData);
+                if (roomIndex <= currentStop) {
+                    room.classList.add('completed');
+                } else if (roomIndex === currentStop + 1) {
+                    room.classList.add('current');
+                } else {
+                    room.classList.add('locked');
+                }
+            }
+        });
+    }
+
+    /**
+     * Move character to current position with smooth animation
+     */
+    function moveCharacter(animate = false) {
+        const marker = document.getElementById('character-marker');
+        if (!marker) return;
+
+        const pos = characterPositions[currentStop] || characterPositions[0];
+
+        // Set position directly - CSS transition handles smooth movement
+        marker.style.left = pos.left;
+        marker.style.top = pos.top;
+    }
+
+    /**
+     * Show the riddle screen
+     */
+    function showRiddle() {
+        const stop = GameData.ROUTE[currentStop];
+        if (!stop) return;
+
+        elements.riddleNumber.textContent = stop.id;
+        elements.riddleText.textContent = stop.riddle;
+        elements.artworkName.textContent = stop.artworkName;
+        elements.answerInput.value = '';
+        elements.feedback.className = 'feedback';
+        elements.feedback.textContent = '';
+
+        // Set artwork image
+        if (stop.artworkImage && elements.artworkImage) {
+            elements.artworkImage.src = stop.artworkImage;
+            elements.artworkImage.alt = stop.artworkName;
+        }
+
+        showScreen('riddle');
+
+        // Focus on input after a short delay
+        setTimeout(() => {
+            elements.answerInput.focus();
+        }, 300);
+    }
+
+    /**
+     * Show hint for current riddle
+     */
+    function showHint() {
+        const stop = GameData.ROUTE[currentStop];
+        if (!stop) return;
+
+        elements.feedback.textContent = stop.hint;
+        elements.feedback.className = 'feedback visible';
+    }
+
+    /**
+     * Check the answer
+     */
+    function checkAnswer() {
+        const stop = GameData.ROUTE[currentStop];
+        if (!stop) return;
+
+        const answer = elements.answerInput.value.trim().toLowerCase();
+        if (!answer) {
+            showFeedback('Моля, въведи отговор.', false);
+            return;
+        }
+
+        const correct = stop.correctAnswer.toLowerCase();
+        const alternatives = stop.alternativeAnswers || [];
+
+        // Check if answer matches
+        let isCorrect = answer === correct ||
+                       answer.includes(correct) ||
+                       correct.includes(answer);
+
+        if (!isCorrect) {
+            isCorrect = alternatives.some(alt => {
+                const altLower = alt.toLowerCase();
+                return answer === altLower ||
+                       answer.includes(altLower) ||
+                       altLower.includes(answer);
+            });
+        }
+
+        if (isCorrect) {
+            handleCorrectAnswer(stop);
+        } else {
+            handleIncorrectAnswer();
         }
     }
 
     /**
-     * Toggle menu overlay
+     * Handle correct answer
      */
-    function toggleMenu(show) {
-        dom.menuOverlay.classList.toggle('active', show);
+    function handleCorrectAnswer(stop) {
+        // Add to progress
+        progress.push(stop.id);
+        saveProgress();
+
+        // Update stamp count in nav
+        updateStampCount();
+
+        // Show stamp screen
+        elements.stampIcon.textContent = stop.stampIcon;
+        elements.physicalLocation.textContent = stop.physicalStamp;
+
+        showScreen('stamp');
+
+        // Haptic feedback if available
+        if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]);
+        }
     }
 
     /**
-     * Go back to home screen
+     * Handle incorrect answer
+     */
+    function handleIncorrectAnswer() {
+        const messages = GameData.MESSAGES.incorrect;
+        const message = messages[Math.floor(Math.random() * messages.length)];
+        showFeedback(message, false);
+
+        // Shake the input
+        elements.answerInput.classList.add('shake');
+        setTimeout(() => {
+            elements.answerInput.classList.remove('shake');
+        }, 500);
+
+        // Haptic feedback if available
+        if (navigator.vibrate) {
+            navigator.vibrate([50, 50, 50]);
+        }
+    }
+
+    /**
+     * Show feedback message
+     */
+    function showFeedback(message, isSuccess) {
+        elements.feedback.textContent = message;
+        elements.feedback.className = `feedback visible ${isSuccess ? 'success' : 'error'}`;
+    }
+
+    /**
+     * Continue to next stop or complete screen
+     */
+    function continueGame() {
+        currentStop++;
+        saveProgress();
+
+        if (currentStop >= GameData.ROUTE.length) {
+            showCompleteScreen();
+        } else {
+            showScreen('navigate');
+            updateNavigateScreen();
+        }
+    }
+
+    /**
+     * Show the completion screen
+     */
+    function showCompleteScreen() {
+        // Show all collected stamps
+        elements.finalStamps.innerHTML = GameData.ROUTE.map(stop =>
+            `<span class="stamp-icon">${stop.stampIcon}</span>`
+        ).join('');
+
+        showScreen('complete');
+
+        // Celebration haptic
+        if (navigator.vibrate) {
+            navigator.vibrate([100, 100, 100, 100, 200]);
+        }
+    }
+
+    /**
+     * Restart the game
+     */
+    function restartGame() {
+        currentStop = 0;
+        progress = [];
+        clearProgress();
+        updateStampCount();
+        showScreen('welcome');
+    }
+
+    /**
+     * Save progress to localStorage
+     */
+    function saveProgress() {
+        const data = {
+            currentStop: currentStop,
+            progress: progress
+        };
+        localStorage.setItem(GameData.STORAGE_KEY, JSON.stringify(data));
+    }
+
+    /**
+     * Load progress from localStorage
+     */
+    function loadProgress() {
+        try {
+            const saved = localStorage.getItem(GameData.STORAGE_KEY);
+            if (saved) {
+                const data = JSON.parse(saved);
+                currentStop = data.currentStop || 0;
+                progress = data.progress || [];
+            }
+        } catch (e) {
+            console.warn('[App] Could not load progress:', e);
+        }
+    }
+
+    /**
+     * Clear progress from localStorage
+     */
+    function clearProgress() {
+        localStorage.removeItem(GameData.STORAGE_KEY);
+    }
+
+    /**
+     * Navigation: Go to home/welcome screen
      */
     function goToHome() {
-        toggleMenu(false);
-        showScreen('home');
-    }
-
-    /**
-     * Confirm and reset game
-     */
-    function confirmReset() {
-        if (confirm('Сигурен ли си, че искаш да започнеш отначало? Всички печати ще бъдат изгубени.')) {
-            resetGame();
+        if (confirm('Искаш ли да започнеш отначало? Прогресът ще бъде изгубен.')) {
+            restartGame();
         }
     }
 
     /**
-     * Reset the game
+     * Navigation: Go to map/navigate screen
      */
-    function resetGame() {
-        Game.reset();
-        toggleMenu(false);
-        hideModal('complete');
-
-        // Re-render character options and go to home
-        renderCharacterOptions();
-        dom.btnStart.disabled = true;
-        showScreen('home');
+    function goToMap() {
+        if (currentStop > 0 || progress.length > 0) {
+            showScreen('navigate');
+            updateNavigateScreen();
+        } else {
+            // No progress yet, start the game
+            startGame();
+        }
     }
 
-    // Initialize when DOM is ready
+    /**
+     * Open passport modal
+     */
+    function openPassport() {
+        updatePassportDisplay();
+        passport.modal.classList.add('active');
+    }
+
+    /**
+     * Close passport modal
+     */
+    function closePassport() {
+        passport.modal.classList.remove('active');
+    }
+
+    /**
+     * Update passport display with collected stamps
+     */
+    function updatePassportDisplay() {
+        // Build stamps HTML
+        const stampsHtml = GameData.ROUTE.map((stop, index) => {
+            const isCollected = progress.includes(stop.id);
+            return `
+                <div class="passport-stamp ${isCollected ? 'collected' : 'locked'}">
+                    <span class="stamp-emoji">${stop.stampIcon}</span>
+                    <span class="stamp-room">${stop.room}</span>
+                </div>
+            `;
+        }).join('');
+
+        passport.stamps.innerHTML = stampsHtml;
+
+        // Update progress
+        const total = GameData.ROUTE.length;
+        const collected = progress.length;
+        passport.progressFill.style.width = `${(collected / total) * 100}%`;
+        passport.progressText.textContent = `${collected} / ${total} печата`;
+    }
+
+    /**
+     * Update stamp count badge in nav
+     */
+    function updateStampCount() {
+        nav.stampCount.textContent = progress.length;
+        if (progress.length === 0) {
+            nav.stampCount.classList.add('empty');
+        } else {
+            nav.stampCount.classList.remove('empty');
+        }
+    }
+
+    /**
+     * Update navigation bar visibility based on current screen
+     */
+    function updateNavBar(screenName) {
+        // Hide nav on welcome screen
+        if (screenName === 'welcome') {
+            nav.bar.classList.add('hidden');
+        } else {
+            nav.bar.classList.remove('hidden');
+        }
+    }
+
+    // Start when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
     }
-
-    // Public API (mainly for debugging)
-    return {
-        showScreen,
-        showModal,
-        hideModal,
-        getGame: () => Game,
-        getMap: () => MuseumMap
-    };
 })();
-
-// Make available globally for debugging
-window.App = App;
-
-console.log('🏛️ Museum Stamp Hunt loaded!');
-console.log('📝 Prototype for NBU Marketing Course');
