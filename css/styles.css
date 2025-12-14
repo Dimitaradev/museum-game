@@ -80,8 +80,9 @@ body {
 }
 
 /* Extra padding for screens with buttons at bottom */
-#screen-riddle .screen-content {
-    padding-bottom: 130px;
+#screen-riddle .screen-content,
+#screen-navigate .screen-content {
+    padding-bottom: 140px;
 }
 
 .screen-content.center {
