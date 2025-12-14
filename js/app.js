@@ -267,17 +267,14 @@
         const correct = stop.correctAnswer.toLowerCase();
         const alternatives = stop.alternativeAnswers || [];
 
-        // Check if answer matches
-        let isCorrect = answer === correct ||
-                       answer.includes(correct) ||
-                       correct.includes(answer);
+        // Check if answer matches - exact match only
+        let isCorrect = answer === correct;
 
+        // Check alternative answers
         if (!isCorrect) {
             isCorrect = alternatives.some(alt => {
                 const altLower = alt.toLowerCase();
-                return answer === altLower ||
-                       answer.includes(altLower) ||
-                       altLower.includes(answer);
+                return answer === altLower;
             });
         }
 
