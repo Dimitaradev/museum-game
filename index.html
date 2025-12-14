@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Квадрат 500 - Лов на Печати</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- ============================================
+             SCREEN: HOME / INTRO
+             ============================================ -->
+        <div id="screen-home" class="screen active">
+            <div class="home-container">
+                <div class="home-header">
+                    <div class="logo">🏛️</div>
+                    <h1>Квадрат 500</h1>
+                    <p class="tagline">Лов на Печати • Stamp Hunt</p>
+                </div>
+
+                <div class="character-select">
+                    <h2>Избери своя водач</h2>
+                    <div class="character-options" id="character-options">
+                        <!-- Characters will be rendered by JS -->
+                    </div>
+                </div>
+
+                <div class="game-info">
+                    <div class="info-card">
+                        <span class="info-icon">🗺️</span>
+                        <h3>Изследвай</h3>
+                        <p>Движи се из музея и откривай тайни</p>
+                    </div>
+                    <div class="info-card">
+                        <span class="info-icon">🧩</span>
+                        <h3>Разгадавай</h3>
+                        <p>Реши загадки за всяка творба</p>
+                    </div>
+                    <div class="info-card">
+                        <span class="info-icon">📒</span>
+                        <h3>Събирай</h3>
+                        <p>Спечели печати в брошурата си</p>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-large" id="btn-start" disabled>
+                    <span>🚀</span> Започни Приключението
+                </button>
+
+                <p class="prototype-note">Prototype for NBU Marketing Course</p>
+            </div>
+        </div>
+
+        <!-- ============================================
+             SCREEN: MAP / MAIN GAME
+             ============================================ -->
+        <div id="screen-map" class="screen">
+            <!-- Top HUD -->
+            <div class="game-hud">
+                <div class="hud-left">
+                    <div class="player-info">
+                        <span class="player-avatar" id="hud-avatar">🎨</span>
+                        <span class="player-name" id="hud-name">Играч</span>
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="progress-mini">
+                        <span id="hud-progress">0/5</span>
+                        <div class="progress-dots" id="hud-dots">
+                            <!-- Dots rendered by JS -->
+                        </div>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <button class="hud-btn" id="btn-stamps" title="Брошура">📒</button>
+                    <button class="hud-btn" id="btn-menu" title="Меню">☰</button>
+                </div>
+            </div>
+
+            <!-- Interactive 3D Corridor Map -->
+            <div class="map-container" id="map-container">
+                <div class="map-wrapper" id="map-wrapper">
+                    <!-- 3D Corridor scene rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Room interaction prompt -->
+            <div class="room-prompt" id="room-prompt">
+                <div class="prompt-content">
+                    <span class="prompt-icon">❓</span>
+                    <span class="prompt-text" id="prompt-text">Докосни стая, за да се придвижиш</span>
+                </div>
+            </div>
+
+            <!-- Bottom action bar -->
+            <div class="action-bar">
+                <button class="action-btn" id="btn-hint-map" disabled>
+                    <span>💡</span> Подсказка
+                </button>
+                <button class="action-btn primary" id="btn-interact" disabled>
+                    <span>🔍</span> Изследвай
+                </button>
+            </div>
+        </div>
+
+        <!-- ============================================
+             SCREEN: RIDDLE MODAL
+             ============================================ -->
+        <div id="modal-riddle" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content riddle-modal">
+                <div class="modal-header">
+                    <div class="riddle-location">
+                        <span class="location-icon">📍</span>
+                        <span id="riddle-room-name">Зала 19</span>
+                    </div>
+                    <button class="modal-close" id="btn-close-riddle">✕</button>
+                </div>
+
+                <div class="riddle-body">
+                    <div class="guide-speech">
+                        <div class="guide-avatar" id="modal-guide-avatar">🎨</div>
+                        <div class="speech-bubble">
+                            <p class="guide-name" id="modal-guide-name">Златната Муза казва:</p>
+                            <p class="riddle-text" id="riddle-text">
+                                Тук ще се появи загадката...
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="artwork-hint" id="artwork-hint">
+                        <span class="artwork-label">Търси:</span>
+                        <span class="artwork-name" id="artwork-name">Името на творбата</span>
+                    </div>
+
+                    <div class="hint-section" id="hint-section">
+                        <button class="btn-show-hint" id="btn-show-hint">
+                            💡 Покажи подсказка
+                        </button>
+                        <div class="hint-content" id="hint-content">
+                            <p id="hint-text">Подсказката ще се появи тук...</p>
+                        </div>
+                    </div>
+
+                    <div class="answer-section">
+                        <input
+                            type="text"
+                            id="answer-input"
+                            class="answer-input"
+                            placeholder="Въведи отговор..."
+                            autocomplete="off"
+                            autocapitalize="none"
+                        >
+                        <div class="feedback" id="feedback"></div>
+                        <button class="btn btn-primary" id="btn-check-answer">
+                            ✓ Провери
+                        </button>
+                    </div>
+
+                    <!-- QR Scanner placeholder for future -->
+                    <div class="qr-placeholder" id="qr-placeholder">
+                        <span>📷</span>
+                        <p>Или сканирай QR код на локацията</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================
+             SCREEN: STAMPS MODAL
+             ============================================ -->
+        <div id="modal-stamps" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content stamps-modal">
+                <div class="modal-header">
+                    <h2>📒 Моята Брошура</h2>
+                    <button class="modal-close" id="btn-close-stamps">✕</button>
+                </div>
+
+                <div class="stamps-body">
+                    <div class="stamps-progress">
+                        <div class="progress-ring" id="stamps-ring">
+                            <svg viewBox="0 0 100 100">
+                                <circle class="progress-bg" cx="50" cy="50" r="45"/>
+                                <circle class="progress-fill" cx="50" cy="50" r="45" id="progress-circle"/>
+                            </svg>
+                            <div class="progress-center">
+                                <span class="progress-number" id="stamps-count">0</span>
+                                <span class="progress-label">/ <span id="stamps-total">5</span></span>
+                            </div>
+                        </div>
+                        <p class="progress-message" id="stamps-message">Събирай печати!</p>
+                    </div>
+
+                    <div class="stamps-grid" id="stamps-grid">
+                        <!-- Stamps rendered by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================
+             SCREEN: SUCCESS CELEBRATION
+             ============================================ -->
+        <div id="modal-success" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content success-modal">
+                <div class="success-animation">
+                    <div class="confetti"></div>
+                    <div class="stamp-collected" id="stamp-collected">
+                        <span class="stamp-icon">🌾</span>
+                    </div>
+                </div>
+                <h2>Печат Събран!</h2>
+                <p id="success-message">Браво! Продължавай напред!</p>
+                <button class="btn btn-primary" id="btn-continue">
+                    Продължи →
+                </button>
+            </div>
+        </div>
+
+        <!-- ============================================
+             SCREEN: GAME COMPLETE
+             ============================================ -->
+        <div id="modal-complete" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content complete-modal">
+                <div class="trophy-animation">
+                    <span class="trophy">🏆</span>
+                </div>
+                <h2>Поздравления!</h2>
+                <p>Събра всички печати и завърши маршрута!</p>
+                <p class="subtitle">Ти си истински познавач на българското изкуство!</p>
+
+                <div class="final-stamps" id="final-stamps">
+                    <!-- Final stamps display -->
+                </div>
+
+                <div class="complete-actions">
+                    <button class="btn btn-secondary" id="btn-view-brochure">
+                        📒 Виж Брошурата
+                    </button>
+                    <button class="btn btn-primary" id="btn-play-again">
+                        🔄 Играй Отново
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================
+             MENU OVERLAY
+             ============================================ -->
+        <div id="menu-overlay" class="menu-overlay">
+            <div class="menu-content">
+                <button class="menu-close" id="btn-close-menu">✕</button>
+                <h2>Меню</h2>
+                <nav class="menu-nav">
+                    <button class="menu-item" id="menu-home">
+                        <span>🏠</span> Начало
+                    </button>
+                    <button class="menu-item" id="menu-stamps">
+                        <span>📒</span> Брошура
+                    </button>
+                    <button class="menu-item" id="menu-reset">
+                        <span>🔄</span> Започни Отново
+                    </button>
+                </nav>
+                <div class="menu-footer">
+                    <p>Квадрат 500 - Лов на Печати</p>
+                    <p class="version">Prototype v1.0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
